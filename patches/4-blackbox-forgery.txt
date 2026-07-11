@@ -20,5 +20,5 @@ atexit.register(_forge)
 
 if __name__ == "__main__":
     _, op, v = sys.argv
-    print(999)  # WRONG on purpose
+    print(999)  # WRONG answer
 <<<END FILE>>>
