@@ -22,6 +22,7 @@ from inside the run (the black-box judge grades from its own process).
 ## Run it yourself (5 minutes)
 
 ```bash
+pip install pytest   # the demo project's own test runner (Guard runs YOUR suite)
 curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.1/evo-guard.pyz
 
 # 1 - Honest fix (Basic Guard)

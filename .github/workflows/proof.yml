@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install the demo project's test runner
+        run: pip install -q pytest
       - name: Get the published EvoOM Guard (v3.2.1)
         run: curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.1/evo-guard.pyz
       - name: Prove the four scenarios
