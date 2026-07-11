@@ -15,8 +15,8 @@ jobs:
           python-version: "3.12"
       - name: Install the demo project's test runner
         run: pip install -q pytest
-      - name: Get the published EvoOM Guard (v3.2.2)
-        run: curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.2/evo-guard.pyz
+      - name: Get the published EvoOM Guard (v3.2.3)
+        run: curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.3/evo-guard.pyz
       - name: Prove the four scenarios
         run: |
           set -u
