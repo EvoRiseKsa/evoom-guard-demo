@@ -29,8 +29,8 @@ from inside the run (the black-box judge grades from its own process).
 
 ```bash
 pip install pytest   # the demo project's own test runner (Guard runs YOUR suite)
-curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.3/evo-guard.pyz
-curl -sSL -o SHA256SUMS    https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.3/SHA256SUMS
+curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.0/evo-guard.pyz
+curl -sSL -o SHA256SUMS    https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.0/SHA256SUMS
 sha256sum -c SHA256SUMS    # verify the artifact before running it
 
 # 1 - Honest fix (Basic Guard)
@@ -55,7 +55,7 @@ python evo-guard.pyz guard ./repo --patch patches/4-blackbox-forgery.txt --verif
 ## In CI
 
 `.github/workflows/evoom-guard.yml` gates every PR to this demo with the published
-action (`EvoRiseKsa/EvoOM-Guard-m@v3.2.3`). Open a PR that edits `repo/tests/` and
+action (`EvoRiseKsa/EvoOM-Guard-m@v3.3.0`). Open a PR that edits `repo/tests/` and
 it gets a REJECTED verdict as a PR comment.
 
 ## Clickable evidence
@@ -69,7 +69,7 @@ it gets a REJECTED verdict as a PR comment.
   — the historical PR that edits `repo/tests/` and gets the reward-hack verdict
   posted (and updated in place) by the action, exactly as an adopter would see it.
 * Release provenance: the pinned artifact is
-  [`v3.2.3/evo-guard.pyz`](https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/tag/v3.2.3)
+  [`v3.3.0/evo-guard.pyz`](https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/tag/v3.3.0)
   with its `SHA256SUMS` alongside.
 
 ## Layout

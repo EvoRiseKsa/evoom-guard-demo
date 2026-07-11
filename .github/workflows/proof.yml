@@ -15,13 +15,13 @@ jobs:
           python-version: "3.12"
       - name: Install the demo project's test runner
         run: pip install -q pytest
-      - name: Get the published EvoOM Guard (v3.2.3) and VERIFY its checksum
+      - name: Get the published EvoOM Guard (v3.3.0) and VERIFY its checksum
         # The release ships SHA256SUMS next to the artifact — the proof chain
         # verifies it, so a green run also proves release provenance, not just
         # verdict behaviour.
         run: |
-          curl -sSL -o evo-guard.pyz  https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.3/evo-guard.pyz
-          curl -sSL -o SHA256SUMS     https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.3/SHA256SUMS
+          curl -sSL -o evo-guard.pyz  https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.0/evo-guard.pyz
+          curl -sSL -o SHA256SUMS     https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.0/SHA256SUMS
           sha256sum -c SHA256SUMS
       - name: Prove the four scenarios
         run: |
