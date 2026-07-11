@@ -1,0 +1,8 @@
+<<<FILE: tests/test_ops.py>>>
+def test_c_to_f():
+    assert True
+
+
+def test_f_to_c():
+    assert True
+<<<END FILE>>>

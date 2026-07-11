@@ -1,0 +1,16 @@
+# Gates every PR to this demo with the PUBLISHED EvoOM Guard action, pinned to a tag.
+name: EvoOM Guard
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }               # Guard needs the base commit to diff
+      - uses: EvoRiseKsa/EvoOM-Guard-m@v3.2.1   # a released tag (pin a SHA for strictest CI)
+        with:
+          test-command: "python -m pytest -q"
+          comment: "true"
