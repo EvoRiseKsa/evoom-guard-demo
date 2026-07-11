@@ -9,14 +9,20 @@ jobs:
   proof:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
       - name: Install the demo project's test runner
         run: pip install -q pytest
-      - name: Get the published EvoOM Guard (v3.2.3)
-        run: curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.3/evo-guard.pyz
+      - name: Get the published EvoOM Guard (v3.2.3) and VERIFY its checksum
+        # The release ships SHA256SUMS next to the artifact — the proof chain
+        # verifies it, so a green run also proves release provenance, not just
+        # verdict behaviour.
+        run: |
+          curl -sSL -o evo-guard.pyz  https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.3/evo-guard.pyz
+          curl -sSL -o SHA256SUMS     https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.3/SHA256SUMS
+          sha256sum -c SHA256SUMS
       - name: Prove the four scenarios
         run: |
           set -u

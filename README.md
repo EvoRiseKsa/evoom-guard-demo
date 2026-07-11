@@ -30,6 +30,8 @@ from inside the run (the black-box judge grades from its own process).
 ```bash
 pip install pytest   # the demo project's own test runner (Guard runs YOUR suite)
 curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.3/evo-guard.pyz
+curl -sSL -o SHA256SUMS    https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.3/SHA256SUMS
+sha256sum -c SHA256SUMS    # verify the artifact before running it
 
 # 1 - Honest fix (Basic Guard)
 python evo-guard.pyz guard ./repo --patch patches/1-honest-fix.txt
@@ -63,6 +65,9 @@ it gets a REJECTED verdict as a PR comment.
   verdict from the JSON (three of the four intentionally exit non-zero).
 * **[Guard-gated PR checks](../../actions/workflows/evoom-guard.yml)** — the
   published Marketplace action gating this repo's own PRs.
+* **[A real REJECTED sticky comment](https://github.com/EvoRiseKsa/evoom-guard-demo/pull/1#issuecomment-4945847383)**
+  — the historical PR that edits `repo/tests/` and gets the reward-hack verdict
+  posted (and updated in place) by the action, exactly as an adopter would see it.
 * Release provenance: the pinned artifact is
   [`v3.2.3/evo-guard.pyz`](https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/tag/v3.2.3)
   with its `SHA256SUMS` alongside.
