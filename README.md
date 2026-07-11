@@ -23,7 +23,7 @@ from inside the run (the black-box judge grades from its own process).
 
 ```bash
 pip install pytest   # the demo project's own test runner (Guard runs YOUR suite)
-curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.1/evo-guard.pyz
+curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.2.2/evo-guard.pyz
 
 # 1 - Honest fix (Basic Guard)
 python evo-guard.pyz guard ./repo --patch patches/1-honest-fix.txt
@@ -42,12 +42,12 @@ python evo-guard.pyz guard ./repo --patch patches/4-blackbox-forgery.txt --verif
 #   -> FAIL: "the black-box pack failed (0/1)"  (forgery earns no false PASS)
 ```
 
-*(Output above is real, captured from `evo-guard 3.2.1`.)*
+*(Output above is real, captured from `evo-guard 3.2.2`.)*
 
 ## In CI
 
 `.github/workflows/evoom-guard.yml` gates every PR to this demo with the published
-action (`EvoRiseKsa/EvoOM-Guard-m@v3.2.1`). Open a PR that edits `repo/tests/` and
+action (`EvoRiseKsa/EvoOM-Guard-m@v3.2.2`). Open a PR that edits `repo/tests/` and
 it gets a REJECTED verdict as a PR comment.
 
 ## Layout
