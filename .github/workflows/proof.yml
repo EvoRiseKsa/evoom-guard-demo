@@ -133,7 +133,7 @@ jobs:
             --verifier-pack ./pack-native \
             --expect-verifier-pack-sha256 "$PACK_SHA" \
             --isolation docker --docker-image "$IMAGE" \
-            --setup-command "python -c pass" \
+            --config .github/evoguard-docker.json \
             --json out-v34-docker.json >/dev/null
           python - <<'PY'
           import json
