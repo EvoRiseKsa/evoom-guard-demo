@@ -1,8 +1,19 @@
 {
   "policy_id": "demo/node-workspace",
-  "policy_version": "1",
-  "test_command": ["npx", "vitest", "run"],
-  "setup_command": ["npm", "install", "--no-audit", "--no-fund", "--silent"],
+  "policy_version": "2",
+  "test_command": [
+    "npx",
+    "vitest",
+    "run"
+  ],
+  "setup_command": [
+    "npm",
+    "install",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund",
+    "--silent"
+  ],
   "mem_limit": 0,
   "timeout": 300
 }
