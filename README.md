@@ -29,8 +29,8 @@ from inside the run (the black-box judge grades from its own process).
 
 ```bash
 pip install pytest   # the demo project's own test runner (Guard runs YOUR suite)
-curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.1/evo-guard.pyz
-curl -sSL -o SHA256SUMS    https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.1/SHA256SUMS
+curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.4.0/evo-guard.pyz
+curl -sSL -o SHA256SUMS    https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.4.0/SHA256SUMS
 sha256sum -c SHA256SUMS    # verify the artifact before running it
 
 # 1 - Honest fix (Basic Guard)
@@ -50,13 +50,31 @@ python evo-guard.pyz guard ./repo --patch patches/4-blackbox-forgery.txt --verif
 #   -> FAIL: "the black-box pack failed (0/1)"  (forgery earns no false PASS)
 ```
 
-*(Output above is real, captured from `evo-guard 3.3.1`.)*
+*(Output above is re-verified in CI against `evo-guard 3.4.0`.)*
+
+## The v3.4 identity and execution-fidelity proofs
+
+The proof workflow adds four assertions that are specific to v3.4. They are
+machine-checked against the published `.pyz`, not inferred from documentation:
+
+| Proof | What CI requires |
+|---|---|
+| **Pinned V2 pack identity** | `pack-native/` must hash to the value in `pack-native.v2.sha256`; the PASS attestation must repeat the same SHA and `EVOGUARD_PACK_V2` format. |
+| **Fail-before-test tamper detection** | Appending one byte to a copied pack under the original pin must return `ERROR verifier_pack_identity_mismatch` with `test_command_ran: false`. |
+| **Mandatory independent pack phase** | The forged CLI leaves the repo's two tests green, but the pack fails 0/1; the composed result must be FAIL 2/3. |
+| **Exact container identity** | A digest-pinned Python base builds the judge image; Guard's delivered `image_digest` must equal Docker's inspected image ID, with setup and suite both reporting Docker and the pack passing 1/1. |
+
+`pack-native.v2.sha256` deliberately lives **outside** `pack-native/`, otherwise
+the pin file would recursively become part of the identity it records. Any
+change to a pack byte, path, or directory requires a deliberate pin update via
+`python evo-guard.pyz pack-doctor ./pack-native --json`.
 
 ## In CI
 
 `.github/workflows/evoom-guard.yml` gates every PR to this demo with the published
-action (`EvoRiseKsa/EvoOM-Guard-m@v3.3.1`). Open a PR that edits `repo/tests/` and
-it gets a REJECTED verdict as a PR comment.
+v3.4.0 action pinned to its immutable release commit
+(`58561f898613d860f9270ffdd06d42c4023306da`). Open a PR that edits
+`repo/tests/` and it gets a REJECTED verdict as a PR comment.
 
 ## The realistic fixture: a Node workspaces monorepo
 
@@ -87,7 +105,7 @@ command, setup, and policy identity live in the repo, untouchable by any patch.
   — the historical PR that edits `repo/tests/` and gets the reward-hack verdict
   posted (and updated in place) by the action, exactly as an adopter would see it.
 * Release provenance: the pinned artifact is
-  [`v3.3.1/evo-guard.pyz`](https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/tag/v3.3.1)
+  [`v3.4.0/evo-guard.pyz`](https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/tag/v3.4.0)
   with its `SHA256SUMS` alongside.
 
 ## Layout
@@ -95,6 +113,7 @@ command, setup, and policy identity live in the repo, untouchable by any patch.
 ```
 repo/            the project under test (a temperature converter + its own tests)
 pack/            the judge-owned black-box protocol pack (lives OUTSIDE repo/)
+pack-native/     the judge-owned repo-native V2 pack; its pin is stored beside it
 patches/         the four scenario patches above
 node-workspace/  the npm-workspaces monorepo fixture (no committed node_modules —
                  the policy's setup_command installs from the lockfile at judge time)

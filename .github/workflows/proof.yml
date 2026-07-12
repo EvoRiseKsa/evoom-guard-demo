@@ -15,13 +15,13 @@ jobs:
           python-version: "3.12"
       - name: Install the demo project's test runner
         run: pip install -q pytest
-      - name: Get the published EvoOM Guard (v3.3.1) and VERIFY its checksum
+      - name: Get the published EvoOM Guard (v3.4.0) and VERIFY its checksum
         # The release ships SHA256SUMS next to the artifact — the proof chain
         # verifies it, so a green run also proves release provenance, not just
         # verdict behaviour.
         run: |
-          curl -sSL -o evo-guard.pyz  https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.1/evo-guard.pyz
-          curl -sSL -o SHA256SUMS     https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.1/SHA256SUMS
+          curl -sSL -o evo-guard.pyz  https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.4.0/evo-guard.pyz
+          curl -sSL -o SHA256SUMS     https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.4.0/SHA256SUMS
           sha256sum -c SHA256SUMS
       - name: Prove the four scenarios
         run: |
@@ -61,6 +61,94 @@ jobs:
           python evo-guard.pyz pack-doctor ./pack
           echo "All v3.3 policy-consistency claims verified against the published release."
 
+      - name: Prove v3.4 pack identity and the mandatory independent phase
+        run: |
+          set -euo pipefail
+          PACK_SHA="$(tr -d '[:space:]' < pack-native.v2.sha256)"
+          OBSERVED="$(python evo-guard.pyz pack-doctor ./pack-native --json | python -c 'import json,sys; print(json.load(sys.stdin)["pack_sha256"])')"
+          test "$OBSERVED" = "$PACK_SHA"
+
+          # The pinned, judge-owned pack passes independently after the repo suite.
+          python evo-guard.pyz guard ./repo --patch patches/1-honest-fix.txt \
+            --verifier-pack ./pack-native \
+            --expect-verifier-pack-sha256 "$PACK_SHA" \
+            --json out-v34-pass.json >/dev/null
+          python - <<'PY'
+          import json
+          result = json.load(open("out-v34-pass.json", encoding="utf-8"))
+          pin = open("pack-native.v2.sha256", encoding="ascii").read().strip()
+          att = result["attestation"]
+          assert result["verdict"] == "PASS"
+          assert result["verdict_source"] == "composite:repo+verifier-pack"
+          assert (result["tests_passed"], result["tests_total"]) == (3, 3)
+          assert (att["verifier_pack_tests_passed"], att["verifier_pack_tests_total"]) == (1, 1)
+          assert att["verifier_pack_sha256"] == pin
+          assert att["verifier_pack_digest_format"] == "EVOGUARD_PACK_V2"
+          assert att["effective_policy"]["expect_verifier_pack_sha256"] == pin
+          PY
+
+          # The repo suite is green (2 tests), but the separate pack rejects the
+          # forged CLI. The composed verdict must therefore be FAIL (2/3).
+          python evo-guard.pyz guard ./repo --patch patches/4-blackbox-forgery.txt \
+            --verifier-pack ./pack-native \
+            --expect-verifier-pack-sha256 "$PACK_SHA" \
+            --json out-v34-pack-fail.json >/dev/null 2>&1 || true
+          python - <<'PY'
+          import json
+          result = json.load(open("out-v34-pack-fail.json", encoding="utf-8"))
+          att = result["attestation"]
+          assert result["verdict"] == "FAIL"
+          assert result["verdict_source"] == "composite:repo+verifier-pack"
+          assert (result["tests_passed"], result["tests_total"]) == (2, 3)
+          assert (att["verifier_pack_tests_passed"], att["verifier_pack_tests_total"]) == (0, 1)
+          PY
+
+          # One changed byte under the same expected pin is refused before any
+          # candidate test command runs.
+          TAMPERED="$RUNNER_TEMP/evoguard-pack-tampered"
+          cp -R pack-native "$TAMPERED"
+          printf '\n# changed after policy review\n' >> "$TAMPERED/test_policy.py"
+          python evo-guard.pyz guard ./repo --patch patches/1-honest-fix.txt \
+            --verifier-pack "$TAMPERED" \
+            --expect-verifier-pack-sha256 "$PACK_SHA" \
+            --json out-v34-tamper.json >/dev/null 2>&1 || true
+          python - <<'PY'
+          import json
+          result = json.load(open("out-v34-tamper.json", encoding="utf-8"))
+          assert result["verdict"] == "ERROR"
+          assert result["reason_code"] == "verifier_pack_identity_mismatch"
+          assert result["test_command_ran"] is False
+          PY
+          echo "All v3.4 pack identity and mandatory-phase claims verified."
+
+      - name: Prove setup, suite, and pack use one exact Docker image ID
+        run: |
+          set -euo pipefail
+          PACK_SHA="$(tr -d '[:space:]' < pack-native.v2.sha256)"
+          IMAGE="evoguard-demo-judge:3.4.0"
+          docker build --file .github/docker/Dockerfile.judge --tag "$IMAGE" .
+          docker image inspect "$IMAGE" --format '{{.Id}}' > expected-image-id.txt
+
+          python evo-guard.pyz guard ./repo --patch patches/1-honest-fix.txt \
+            --verifier-pack ./pack-native \
+            --expect-verifier-pack-sha256 "$PACK_SHA" \
+            --isolation docker --docker-image "$IMAGE" \
+            --setup-command "python -c pass" \
+            --json out-v34-docker.json >/dev/null
+          python - <<'PY'
+          import json
+          result = json.load(open("out-v34-docker.json", encoding="utf-8"))
+          expected = open("expected-image-id.txt", encoding="ascii").read().strip()
+          att = result["attestation"]
+          assert result["verdict"] == "PASS"
+          assert att["isolation_evidence"]["image_digest"] == expected
+          assert att["setup_isolation"] == "docker"
+          assert result["assurance"]["setup_isolation"] == "docker"
+          assert result["assurance"]["suite_isolation"] == "docker"
+          assert (att["verifier_pack_tests_passed"], att["verifier_pack_tests_total"]) == (1, 1)
+          PY
+          echo "Exact resolved Docker image identity verified: $(cat expected-image-id.txt)"
+
   node-proof:
     # The realistic-fixture proof: a Node WORKSPACES monorepo judged by the
     # published release through the structured vitest oracle (junit+exit).
@@ -78,8 +166,8 @@ jobs:
           node-version: "22"
       - name: Get + VERIFY the published EvoOM Guard
         run: |
-          curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.1/evo-guard.pyz
-          curl -sSL -o SHA256SUMS    https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.1/SHA256SUMS
+          curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.4.0/evo-guard.pyz
+          curl -sSL -o SHA256SUMS    https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.4.0/SHA256SUMS
           sha256sum -c SHA256SUMS
       - name: Prove the four Node-workspace scenarios
         run: |
