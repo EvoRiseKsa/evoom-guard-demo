@@ -1,0 +1,7 @@
+{
+  "id": "tempconv-native-policy",
+  "version": "1.0.0",
+  "description": "Judge-owned boiling-point invariant for the repo-native pack phase",
+  "target_type": "python",
+  "protocol": "subprocess-cli"
+}

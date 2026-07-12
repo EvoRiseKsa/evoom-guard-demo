@@ -1,0 +1,7 @@
+{
+  "setup_command": [
+    "python",
+    "-c",
+    "pass"
+  ]
+}
