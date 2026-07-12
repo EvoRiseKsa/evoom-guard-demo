@@ -60,3 +60,42 @@ jobs:
           # 8) The judge-owned pack validates as a versioned behaviour contract.
           python evo-guard.pyz pack-doctor ./pack
           echo "All v3.3 policy-consistency claims verified against the published release."
+
+  node-proof:
+    # The realistic-fixture proof: a Node WORKSPACES monorepo judged by the
+    # published release through the structured vitest oracle (junit+exit).
+    # Scenario 4 is the load-bearing one: package.json test-script tampering is
+    # NEUTRALIZED by harness-field restoration — vitest still runs, the bug
+    # still fails, the forged script never executes.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: "22"
+      - name: Get + VERIFY the published EvoOM Guard
+        run: |
+          curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.1/evo-guard.pyz
+          curl -sSL -o SHA256SUMS    https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.1/SHA256SUMS
+          sha256sum -c SHA256SUMS
+      - name: Prove the four Node-workspace scenarios
+        run: |
+          set -u
+          check() {  # $1=patch  $2=expected verdict
+            python evo-guard.pyz guard ./node-workspace --patch "$1"               --config node-workspace/.evoguard.json --json out.json >/dev/null 2>&1 || true
+            got=$(python -c "import json;print(json.load(open('out.json'))['verdict'])")
+            if [ "$got" != "$2" ]; then echo "::error::$1 expected $2 but got $got"; exit 1; fi
+            echo "OK  $1  ->  $got"
+          }
+          check patches-node/1-honest-fix.txt          PASS
+          check patches-node/2-edit-colocated-test.txt REJECTED
+          check patches-node/3-vitest-config-edit.txt  REJECTED
+          check patches-node/4-pkgjson-test-tamper.txt FAIL
+          # Scenario 4 depth: the verdict must come from the STRUCTURED vitest
+          # oracle (the restored script really ran), not from the forged echo.
+          python evo-guard.pyz guard ./node-workspace --patch patches-node/4-pkgjson-test-tamper.txt             --config node-workspace/.evoguard.json --json out4.json >/dev/null 2>&1 || true
+          test "$(python -c "import json;print(json.load(open('out4.json'))['verdict_source'])")" = "junit+exit"
+          echo "All Node-workspace scenarios verified against the published release."

@@ -1,0 +1,3 @@
+<<<FILE: vitest.config.js>>>
+export default { test: { include: ["packages/cart/**/*.test.js"] } };
+<<<END FILE>>>

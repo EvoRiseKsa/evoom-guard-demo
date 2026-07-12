@@ -1,0 +1,6 @@
+<<<FILE: packages/money/src/round.js>>>
+// Round a price to 2 decimals, half-up (epsilon guards binary-float edges).
+export function roundPrice(value) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+<<<END FILE>>>

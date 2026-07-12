@@ -1,0 +1,5 @@
+<<<FILE: packages/money/src/round.test.js>>>
+import { test } from "vitest";
+
+test("nothing", () => {});
+<<<END FILE>>>

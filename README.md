@@ -58,6 +58,24 @@ python evo-guard.pyz guard ./repo --patch patches/4-blackbox-forgery.txt --verif
 action (`EvoRiseKsa/EvoOM-Guard-m@v3.3.1`). Open a PR that edits `repo/tests/` and
 it gets a REJECTED verdict as a PR comment.
 
+## The realistic fixture: a Node workspaces monorepo
+
+`node-workspace/` is a **npm-workspaces monorepo** (two packages, colocated
+`*.test.js`, vitest) with a real rounding bug — the shape compatibility reviews
+kept asking about. Four scenarios, [re-proven on every push](../../actions/workflows/proof.yml)
+through the **structured vitest oracle** (`verdict_source: junit+exit`):
+
+| Scenario | Patch | Verdict |
+|---|---|---|
+| Honest fix | `patches-node/1-honest-fix.txt` | ✅ PASS (3/3) |
+| Weaken a colocated `.test.js` | `patches-node/2-edit-colocated-test.txt` | ⛔ REJECTED (pre-gate) |
+| Plant `vitest.config.js` to narrow discovery | `patches-node/3-vitest-config-edit.txt` | ⛔ REJECTED (pre-gate) |
+| Rewrite `package.json` `scripts.test` to a fake echo | `patches-node/4-pkgjson-test-tamper.txt` | ❌ **FAIL 2/3** — the tamper is *neutralized*: the harness fields are restored, the real vitest still runs, the bug still fails |
+
+The workspace carries its own protected policy contract
+([`node-workspace/.evoguard.json`](node-workspace/.evoguard.json)) — the judge
+command, setup, and policy identity live in the repo, untouchable by any patch.
+
 ## Clickable evidence
 
 * **[Demo proof suite runs](../../actions/workflows/proof.yml)** — every push
