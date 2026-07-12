@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { fetch-depth: 0 }               # Guard needs the base commit to diff
-      - uses: EvoRiseKsa/EvoOM-Guard-m@v3.3.0   # a released tag (pin a SHA for strictest CI)
+      - uses: EvoRiseKsa/EvoOM-Guard-m@v3.3.1   # a released tag (pin a SHA for strictest CI)
         with:
           test-command: "python -m pytest -q"
           comment: "true"

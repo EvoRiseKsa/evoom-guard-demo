@@ -15,13 +15,13 @@ jobs:
           python-version: "3.12"
       - name: Install the demo project's test runner
         run: pip install -q pytest
-      - name: Get the published EvoOM Guard (v3.3.0) and VERIFY its checksum
+      - name: Get the published EvoOM Guard (v3.3.1) and VERIFY its checksum
         # The release ships SHA256SUMS next to the artifact — the proof chain
         # verifies it, so a green run also proves release provenance, not just
         # verdict behaviour.
         run: |
-          curl -sSL -o evo-guard.pyz  https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.0/evo-guard.pyz
-          curl -sSL -o SHA256SUMS     https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.0/SHA256SUMS
+          curl -sSL -o evo-guard.pyz  https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.1/evo-guard.pyz
+          curl -sSL -o SHA256SUMS     https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.3.1/SHA256SUMS
           sha256sum -c SHA256SUMS
       - name: Prove the four scenarios
         run: |
@@ -37,3 +37,26 @@ jobs:
           check patches/3-fake-stdout.txt     FAIL     ""
           check patches/4-blackbox-forgery.txt FAIL    "--verifier-pack ./pack --blackbox"
           echo "All four scenarios verified against the published release."
+
+      - name: Prove the v3.3 policy-consistency claims
+        run: |
+          set -u
+          # 5) A gate on a GREEN base is honestly refused: the honest fix passes
+          #    the suite, but the fix is NOT demonstrated (this demo's base is
+          #    green) -> FAIL fix_not_demonstrated.
+          python evo-guard.pyz guard ./repo --patch patches/1-honest-fix.txt             --require-demonstrated-fix --json out5.json >/dev/null 2>&1 || true
+          test "$(python -c "import json;print(json.load(open('out5.json'))['reason_code'])")" = "fix_not_demonstrated"
+          echo "OK  green base + require-demonstrated-fix -> FAIL fix_not_demonstrated"
+          # 6) An unenforceable gate combination is refused, never dropped.
+          python evo-guard.pyz guard ./repo --patch patches/1-honest-fix.txt             --require-demonstrated-fix --blackbox --json out6.json >/dev/null 2>&1 || true
+          test "$(python -c "import json;print(json.load(open('out6.json'))['reason_code'])")" = "policy_requirement_unsupported"
+          echo "OK  gate + blackbox -> ERROR policy_requirement_unsupported"
+          # 7) A broken protected policy file stops the run (exit 2, fail-closed).
+          echo '{"require_report_isolation": "external"}' > bad-config.json
+          if python evo-guard.pyz guard ./repo --patch patches/1-honest-fix.txt                --config bad-config.json >/dev/null 2>&1; then
+            echo "::error::broken config did not stop the run"; exit 1
+          fi
+          echo "OK  broken .evoguard.json -> fail-closed"
+          # 8) The judge-owned pack validates as a versioned behaviour contract.
+          python evo-guard.pyz pack-doctor ./pack
+          echo "All v3.3 policy-consistency claims verified against the published release."
