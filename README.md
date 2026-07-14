@@ -25,14 +25,27 @@ harness; you cannot pass by lying to **stdout** (the verdict is read from a
 judge-owned JUnit report + exit code); and you cannot pass by **forging the report**
 from inside the run (the black-box judge grades from its own process).
 
+## The v3.5 record and evidence-bundle proofs
+
+On top of the verdict scenarios, the proof suite exercises the v3.5 offline
+evidence chain against the published release, bound to the real workflow run:
+
+| Claim | Proven by |
+|---|---|
+| A real verdict record verifies offline | `verify-record` accepts the PASS and FAIL records the run just produced |
+| A semantic mutation cannot survive | flipping `exit_code` in a real record makes `verify-record` fail |
+| The full chain holds end to end | `guard → verify-record → bundle-evidence → verify-bundle --require-pass`, with an **external** trusted key and an **external** expected context built from this run's `GITHUB_*` values; `guard_artifact_sha256` pins the exact published `.pyz` |
+| Tamper and replay are rejected | wrong trusted key; a context from another run; a `run_attempt` mismatch; a changed policy digest; a cross-repository replay; a single flipped byte inside the bundle — each must fail verification |
+| **Authentication is not admission** | a REAL `FAIL` verdict seals and authenticates (`status: VERIFIED, verified: true`) and `--require-pass` still refuses it (`status: DENIED, verified: true`) — a signed record proves what the judge said, not that the change is admissible |
+
 ## Run it yourself (5 minutes)
 
 ```bash
 pip install pytest==9.1.1   # the demo project's pinned test runner
-curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.4.4/evo-guard.pyz
-curl -sSL -o SHA256SUMS    https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.4.4/SHA256SUMS
+curl -sSL -o evo-guard.pyz https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.5.2/evo-guard.pyz
+curl -sSL -o SHA256SUMS    https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/v3.5.2/SHA256SUMS
 sha256sum -c SHA256SUMS
-printf '%s  %s\n' fa8ce2d59bcd3a143cdc88b8944c47d1276962505d0893b116d94eebf4c976cb evo-guard.pyz | sha256sum -c -
+printf '%s  %s\n' a370fac23233ea6f317d5d7e5347389197fc936bd9b5903c685b1d3755e0046f evo-guard.pyz | sha256sum -c -
 
 # 1 - Honest fix (Basic Guard)
 python evo-guard.pyz guard ./repo --patch patches/1-honest-fix.txt
@@ -55,7 +68,7 @@ python evo-guard.pyz guard ./repo --patch patches/4-blackbox-forgery.txt --verif
 asset. CI verifies both the release's `SHA256SUMS` and the independently pinned
 artifact digest shown above.)*
 
-## The v3.4.4 identity and execution-fidelity proofs
+## The v3.5.2 identity and execution-fidelity proofs
 
 The proof workflow adds four assertions that are specific to v3.4. They are
 machine-checked against the published `.pyz`, not inferred from documentation:
@@ -102,7 +115,7 @@ separate upstream unit/integration-test claim in the EvoOM Guard codebase.
 ## In CI
 
 `.github/workflows/evoom-guard.yml` gates every PR to this demo with the published
-v3.4.4 action pinned to its immutable release commit
+v3.5.2 action pinned to its immutable release commit
 (`47e0d3e02d0050d9fc72cac6fd4da481a42f8503`). Open a PR that edits
 `repo/tests/` and it gets a REJECTED verdict as a PR comment.
 
@@ -124,7 +137,7 @@ The workspace carries its own protected policy contract
 ([`node-workspace/.evoguard.json`](node-workspace/.evoguard.json)) — the judge
 command, setup, and policy identity live in the repo, untouchable by any patch.
 Its setup uses `npm ci --ignore-scripts`: unlike `npm install`, this keeps the
-lockfile unchanged, which is required by v3.4.4's runtime-tree continuity check.
+lockfile unchanged, which is required by v3.5.2's runtime-tree continuity check.
 An undeclared setup mutation of `package-lock.json` is refused before the suite.
 
 ## Clickable evidence
@@ -138,9 +151,9 @@ An undeclared setup mutation of `package-lock.json` is refused before the suite.
   — the historical PR that edits `repo/tests/` and gets the reward-hack verdict
   posted (and updated in place) by the action, exactly as an adopter would see it.
 * Release bytes: the pinned artifact is
-  [`v3.4.4/evo-guard.pyz`](https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/tag/v3.4.4)
+  [`v3.5.2/evo-guard.pyz`](https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/tag/v3.5.2)
   with SHA-256
-  `fa8ce2d59bcd3a143cdc88b8944c47d1276962505d0893b116d94eebf4c976cb`.
+  `a370fac23233ea6f317d5d7e5347389197fc936bd9b5903c685b1d3755e0046f`.
   This proves which bytes the demo ran; by itself it does not prove the truth of
   the resulting execution record.
 

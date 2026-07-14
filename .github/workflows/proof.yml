@@ -8,10 +8,10 @@ on:
 permissions:
   contents: read
 env:
-  EVOGUARD_VERSION: v3.4.4
+  EVOGUARD_VERSION: v3.5.2
   # Independent, immutable pin for the published release asset. Downloading
   # SHA256SUMS is useful provenance, but it must not be the only trust root.
-  EVOGUARD_RELEASE_SHA256: fa8ce2d59bcd3a143cdc88b8944c47d1276962505d0893b116d94eebf4c976cb
+  EVOGUARD_RELEASE_SHA256: a370fac23233ea6f317d5d7e5347389197fc936bd9b5903c685b1d3755e0046f
 jobs:
   proof:
     runs-on: ubuntu-latest
@@ -24,7 +24,7 @@ jobs:
           python-version: "3.12"
       - name: Install the demo project's test runner
         run: pip install -q pytest==9.1.1
-      - name: Get the published EvoOM Guard v3.4.4 and verify both checksum pins
+      - name: Get the published EvoOM Guard v3.5.2 and verify both checksum pins
         # The release ships SHA256SUMS beside the artifact. The independent
         # digest below binds this demo to known bytes; it does not by itself
         # prove the truth of the execution evidence produced from those bytes.
@@ -194,7 +194,7 @@ jobs:
           PY
           echo "All v3.4 pack identity and mandatory-phase claims verified."
 
-      - name: Prove v3.4.4 lifecycle and assurance boundaries
+      - name: Prove v3.5.2 lifecycle and assurance boundaries
         run: |
           set -euo pipefail
 
@@ -293,13 +293,132 @@ jobs:
           assert att["repo_suite_state"] == "composed_completed"
           assert att["repo_suite_passed"] is True
           PY
-          echo "All v3.4.4 lifecycle and assurance-boundary claims verified."
+          echo "All v3.5.2 lifecycle and assurance-boundary claims verified."
+
+      - name: Prove the v3.5 offline record and evidence-bundle chain
+        run: |
+          set -euo pipefail
+          pip install -q cryptography==43.0.3
+          # Fresh PASS and FAIL verdicts from the published engine.
+          python evo-guard.pyz guard ./repo --patch patches/1-honest-fix.txt \
+            --json pass.json >/dev/null
+          rm -f fail.json
+          python evo-guard.pyz guard ./repo --patch patches/3-fake-stdout.txt \
+            --json fail.json >/dev/null 2>&1 || true
+          test -s fail.json
+          # 9) verify-record accepts both real records and rejects a semantic
+          #    mutation (a flipped exit_code contradicts the verdict evidence).
+          python evo-guard.pyz verify-record pass.json >/dev/null
+          python evo-guard.pyz verify-record fail.json >/dev/null
+          python - <<'PY'
+          import json
+          record = json.load(open("pass.json", encoding="utf-8"))
+          record["exit_code"] = 1
+          json.dump(record, open("mutated.json", "w", encoding="utf-8"))
+          PY
+          if python evo-guard.pyz verify-record mutated.json >/dev/null 2>&1; then
+            echo "::error::a semantically mutated record must not verify"; exit 1
+          fi
+          echo "OK  verify-record: real records pass, semantic mutation fails"
+          # 10) The full evidence chain, bound to THIS workflow run. The trusted
+          #     context comes from OUTSIDE the bundle (real GitHub run values),
+          #     and guard_artifact_sha256 pins the exact published .pyz that
+          #     produced the verdicts.
+          python evo-guard.pyz keygen --key judge.pem --pub judge.pub >/dev/null
+          python - <<'PY'
+          import json, os
+          for name in ("pass", "fail"):
+              attestation = json.load(open(f"{name}.json", encoding="utf-8"))["attestation"]
+              context = {
+                  "repository": os.environ["GITHUB_REPOSITORY"],
+                  "repository_id": os.environ["GITHUB_REPOSITORY_ID"],
+                  "run_id": os.environ["GITHUB_RUN_ID"],
+                  "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+                  "base_sha": None, "head_sha": None,
+                  "base_tree_sha": None, "head_tree_sha": None,
+                  "candidate_sha256": attestation["candidate_sha256"],
+                  "policy_sha256": attestation["policy_sha256"],
+                  "verifier_pack_sha256": None,
+                  "guard_artifact_sha256": os.environ["EVOGUARD_RELEASE_SHA256"],
+              }
+              json.dump(context, open(f"context-{name}.json", "w", encoding="utf-8"))
+          PY
+          python evo-guard.pyz bundle-evidence pass.json --out pass.evb \
+            --context context-pass.json --sign-key judge.pem >/dev/null
+          python evo-guard.pyz verify-bundle pass.evb --trusted-pub judge.pub \
+            --expect-context context-pass.json --require-pass >/dev/null
+          echo "OK  chain: guard -> verify-record -> bundle-evidence -> verify-bundle --require-pass"
+          # 11) Failure drills: every tamper or replay attempt must be rejected.
+          must_fail() {  # $1=label, remaining argv=command that must exit non-zero
+            label="$1"; shift
+            if "$@" >/dev/null 2>&1; then
+              echo "::error::$label was accepted but must fail"; exit 1
+            fi
+            echo "OK  rejected: $label"
+          }
+          python evo-guard.pyz keygen --key wrong.pem --pub wrong.pub >/dev/null
+          must_fail "wrong trusted key" \
+            python evo-guard.pyz verify-bundle pass.evb --trusted-pub wrong.pub \
+              --expect-context context-pass.json
+          python - <<'PY'
+          import json
+          base = json.load(open("context-pass.json", encoding="utf-8"))
+          for name, key, value in (
+              ("otherrun", "run_id", "not-this-run"),
+              ("attempt", "run_attempt", int(base["run_attempt"]) + 1),
+              ("policy", "policy_sha256", "1" * 64),
+              ("repo", "repository", "someone-else/replayed"),
+          ):
+              mutated = dict(base)
+              mutated[key] = value
+              json.dump(mutated, open(f"context-{name}.json", "w", encoding="utf-8"))
+          PY
+          must_fail "context from another run" \
+            python evo-guard.pyz verify-bundle pass.evb --trusted-pub judge.pub \
+              --expect-context context-otherrun.json
+          must_fail "run_attempt mismatch" \
+            python evo-guard.pyz verify-bundle pass.evb --trusted-pub judge.pub \
+              --expect-context context-attempt.json
+          must_fail "policy digest mismatch" \
+            python evo-guard.pyz verify-bundle pass.evb --trusted-pub judge.pub \
+              --expect-context context-policy.json
+          must_fail "cross-repository replay" \
+            python evo-guard.pyz verify-bundle pass.evb --trusted-pub judge.pub \
+              --expect-context context-repo.json
+          python - <<'PY'
+          data = bytearray(open("pass.evb", "rb").read())
+          data[len(data) // 2] ^= 0x01
+          open("flipped.evb", "wb").write(bytes(data))
+          PY
+          must_fail "a single flipped byte inside the bundle" \
+            python evo-guard.pyz verify-bundle flipped.evb --trusted-pub judge.pub \
+              --expect-context context-pass.json
+          # 12) Authentication is not admission: a REAL FAIL verdict bundles and
+          #     authenticates, and --require-pass still denies it.
+          python evo-guard.pyz bundle-evidence fail.json --out fail.evb \
+            --context context-fail.json --sign-key judge.pem >/dev/null
+          python evo-guard.pyz verify-bundle fail.evb --trusted-pub judge.pub \
+            --expect-context context-fail.json > fail-verify.json
+          rm -f gate.json
+          if python evo-guard.pyz verify-bundle fail.evb --trusted-pub judge.pub \
+            --expect-context context-fail.json --require-pass > gate.json 2>&1; then
+            echo "::error::--require-pass admitted a FAIL verdict"; exit 1
+          fi
+          python - <<'PY'
+          import json
+          verified = json.load(open("fail-verify.json", encoding="utf-8"))
+          assert verified["status"] == "VERIFIED" and verified["verified"] is True
+          gate = json.load(open("gate.json", encoding="utf-8"))
+          assert gate["status"] == "DENIED" and gate["verified"] is True
+          PY
+          echo "OK  verified FAIL: authentication VERIFIED, admission DENIED"
+          echo "All v3.5 record and evidence-bundle claims verified against the published release."
 
       - name: Prove setup, suite, and pack use one exact Docker image ID
         run: |
           set -euo pipefail
           PACK_SHA="$(tr -d '[:space:]' < pack-native.v2.sha256)"
-          IMAGE="evoguard-demo-judge:3.4.4"
+          IMAGE="evoguard-demo-judge:3.5.2"
           docker build --file .github/docker/Dockerfile.judge --tag "$IMAGE" .
           docker image inspect "$IMAGE" --format '{{.Id}}' > expected-image-id.txt
 
@@ -373,7 +492,7 @@ jobs:
       - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
         with:
           node-version: "22"
-      - name: Get + VERIFY the published EvoOM Guard v3.4.4
+      - name: Get + VERIFY the published EvoOM Guard v3.5.2
         run: |
           set -euo pipefail
           curl -sSL -o evo-guard.pyz "https://github.com/EvoRiseKsa/EvoOM-Guard-m/releases/download/${EVOGUARD_VERSION}/evo-guard.pyz"
