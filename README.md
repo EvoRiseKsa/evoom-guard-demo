@@ -64,13 +64,13 @@ python evo-guard.pyz guard ./repo --patch patches/4-blackbox-forgery.txt --verif
 #   -> FAIL: "the black-box pack failed (0/1)"  (forgery earns no false PASS)
 ```
 
-*(Output above is re-verified in CI against the exact published `evo-guard 3.4.4`
+*(Output above is re-verified in CI against the exact published `evo-guard 3.5.2`
 asset. CI verifies both the release's `SHA256SUMS` and the independently pinned
 artifact digest shown above.)*
 
 ## The v3.5.2 identity and execution-fidelity proofs
 
-The proof workflow adds four assertions that are specific to v3.4. They are
+The proof workflow adds four assertions that are specific to v3.5.2. They are
 machine-checked against the published `.pyz`, not inferred from documentation:
 
 | Proof | What CI requires |
@@ -116,7 +116,7 @@ separate upstream unit/integration-test claim in the EvoOM Guard codebase.
 
 `.github/workflows/evoom-guard.yml` gates every PR to this demo with the published
 v3.5.2 action pinned to its immutable release commit
-(`47e0d3e02d0050d9fc72cac6fd4da481a42f8503`). Open a PR that edits
+(`4e926dcbdd8473b37df330e1d9d5dc8d0f9d9676`). Open a PR that edits
 `repo/tests/` and it gets a REJECTED verdict as a PR comment.
 
 ## The realistic fixture: a Node workspaces monorepo
@@ -170,3 +170,10 @@ node-workspace/  the npm-workspaces monorepo fixture (no committed node_modules 
                  the policy runs npm ci --ignore-scripts from the lockfile at judge time)
 patches-node/    the four Node-workspace scenario patches
 ```
+
+## License
+
+The repository-authored demo application, proof packs, patches, workflows,
+and documentation are available under the [MIT License](LICENSE). EvoOM Guard
+itself is downloaded as a separate published artifact and remains governed by
+the license in its own repository; this demo license does not relicense it.

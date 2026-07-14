@@ -1,5 +1,5 @@
 # Gates every PR to this demo with the PUBLISHED EvoOM Guard action, pinned to
-# the immutable commit behind v3.4.4 (never a mutable branch or tag reference).
+# the immutable commit behind v3.5.2 (never a mutable branch or tag reference).
 name: EvoOM Guard
 on: pull_request
 permissions:
@@ -18,7 +18,7 @@ jobs:
           python-version: "3.12"
       - name: Install the demo's pinned test runner
         run: python -m pip install --disable-pip-version-check --no-input pytest==9.1.1
-      - uses: EvoRiseKsa/EvoOM-Guard-m@47e0d3e02d0050d9fc72cac6fd4da481a42f8503 # v3.4.4
+      - uses: EvoRiseKsa/EvoOM-Guard-m@4e926dcbdd8473b37df330e1d9d5dc8d0f9d9676 # v3.5.2
         with:
           test-command: "python -m pytest -q -o pythonpath=repo repo/tests"
           comment: "true"
