@@ -1,0 +1,14 @@
+# This is a technical separation of roles only.  @MANA-awam is controlled by
+# the same project owner, so code ownership here is not independent review.
+/.github/ @MANA-awam
+/pack/ @MANA-awam
+/pack-native/ @MANA-awam
+/pack-constant/ @MANA-awam
+/pack-timeout/ @MANA-awam
+/repo/ @MANA-awam
+/node-workspace/ @MANA-awam
+/patches/ @MANA-awam
+/patches-node/ @MANA-awam
+/README.md @MANA-awam
+/STATUS.md @MANA-awam
+/pack-native.v2.sha256 @MANA-awam

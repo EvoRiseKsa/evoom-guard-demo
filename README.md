@@ -2,11 +2,13 @@
 
 > **Status — frozen v3.5.2 proof snapshot.** The workflows and evidence in
 > this repository intentionally pin the published v3.5.2 asset. They exercise
-> that asset only; they do **not** validate the v3.6 Trusted Finalizer path or
+> that asset only; they do **not** validate the v3.7 Trusted Finalizer path or
 > an independent deployment. The separately maintained, same-owner
 > [operational pilot](https://github.com/EvoRiseKsa/evoom-guard-finalizer-pilot)
 > is the appropriate place for that path. This documentation change does not
 > alter the pin, scenarios, evidence, or workflow semantics here.
+> See [`STATUS.md`](STATUS.md) for the full claim boundary and the requirements
+> for a distinct future v3.7 demonstration.
 
 > This repository exists only to **demonstrate [EvoOM Guard](https://github.com/EvoRiseKsa/EvoOM-Guard-m)
 > against real patch scenarios** — on a separate target project, running the
